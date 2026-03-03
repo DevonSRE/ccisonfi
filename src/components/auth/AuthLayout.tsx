@@ -8,9 +8,10 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
   description: string;
+  hideHeader?: boolean;
 }
 
-export function AuthLayout({ children, title, description }: AuthLayoutProps) {
+export function AuthLayout({ children, title, description, hideHeader = false }: AuthLayoutProps) {
   return (
     <section className="min-h-screen bg-white flex flex-col lg:grid lg:grid-cols-12">
       {/* Left Column - Image & Overlay (5 Columns) */}
@@ -58,27 +59,29 @@ export function AuthLayout({ children, title, description }: AuthLayoutProps) {
         <div className="flex-1 flex flex-col lg:items-start px-6 md:px-12 xl:px-24 py-12 lg:pt-32 w-full max-w-[1024px] mx-auto overflow-y-auto no-scrollbar">
           <div className="w-full space-y-6 my-auto">
             {/* Header */}
-            <div className="text-center lg:text-left space-y-2 pb-6 border-b border-slate-50 flex flex-col items-center lg:items-start">
-              {/* Mobile Logo */}
-              <div className="lg:hidden mb-4">
-                <Link href="/">
-                  <Image
-                    src="/CCISONFI-Logo-v2-tb-768x164.png"
-                    alt="CCISONFI Logo"
-                    width={140}
-                    height={48}
-                    className="h-10 w-auto object-contain"
-                  />
-                </Link>
-              </div>
+            {!hideHeader && (
+              <div className="text-center lg:text-left space-y-2 pb-6 border-b border-slate-50 flex flex-col items-center lg:items-start">
+                {/* Mobile Logo */}
+                <div className="lg:hidden mb-4">
+                  <Link href="/">
+                    <Image
+                      src="/CCISONFI-Logo-v2-tb-768x164.png"
+                      alt="CCISONFI Logo"
+                      width={140}
+                      height={48}
+                      className="h-10 w-auto object-contain"
+                    />
+                  </Link>
+                </div>
 
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight leading-tight">
-                {title}
-              </h1>
-              <p className="text-slate-600 text-lg font-medium">
-                {description}
-              </p>
-            </div>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight leading-tight">
+                  {title}
+                </h1>
+                <p className="text-slate-600 text-lg font-medium">
+                  {description}
+                </p>
+              </div>
+            )}
 
             {/* Form Slot */}
             {children}

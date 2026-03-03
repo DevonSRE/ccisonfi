@@ -54,7 +54,7 @@ export function useRegisterForm() {
     const result = registerSchema.safeParse(formData);
     if (!result.success) {
       const errors: FieldErrors = {};
-      result.error.errors.forEach((err: z.ZodIssue) => {
+      result.error.issues.forEach((err: z.ZodIssue) => {
         const field = err.path[0] as keyof RegisterFormData;
         if (!errors[field]) {
           errors[field] = err.message;

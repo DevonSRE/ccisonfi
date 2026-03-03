@@ -1,8 +1,7 @@
 "use client";
 
 import { Icons } from "@/components/ui/Icons";
-import { useRegisterForm } from "@/hooks/useRegisterForm";
-import { RegistrationSuccess } from "@/components/auth/RegistrationSuccess";
+import type { useRegisterForm } from "@/hooks/useRegisterForm";
 
 const inputClasses =
   "w-full px-4 py-5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm transition-all duration-200 outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 hover:border-slate-300";
@@ -11,21 +10,19 @@ const labelClasses = "block text-sm font-semibold text-slate-700 mb-1.5";
 
 const errorInputClasses = "border-red-400 focus:ring-red-500 focus:border-red-500";
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  registerForm: ReturnType<typeof useRegisterForm>;
+}
+
+export function RegisterForm({ registerForm }: RegisterFormProps) {
   const {
     formData,
     isSubmitting,
-    success,
     error,
     fieldErrors,
     handleChange,
     handleSubmit,
-    resetSuccess,
-  } = useRegisterForm();
-
-  if (success) {
-    return <RegistrationSuccess onReset={resetSuccess} />;
-  }
+  } = registerForm;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pt-2 pb-8">

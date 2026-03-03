@@ -1,4 +1,9 @@
-import { Icons } from "@/components/ui/Icons";
+"use client";
+
+import dynamic from "next/dynamic";
+import profileAnimation from "../../../public/Profile.json";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 interface RegistrationSuccessProps {
   onReset: () => void;
@@ -6,9 +11,13 @@ interface RegistrationSuccessProps {
 
 export function RegistrationSuccess({ onReset }: RegistrationSuccessProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
-      <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-        <Icons.CheckCircle2 className="w-8 h-8 text-green-600" />
+    <div className="flex flex-col items-center justify-center py-12 space-y-5 text-center">
+      <div className="w-28 h-28">
+        <Lottie
+          animationData={profileAnimation}
+          loop={false}
+          className="w-full h-full"
+        />
       </div>
       <h3 className="text-2xl font-bold text-slate-900">
         Registration Successful!
