@@ -10,7 +10,7 @@ export const registerSchema = z.object({
     .min(2, "Last name must be at least 2 characters")
     .max(100, "Last name is too long"),
   gender: z.enum(["male", "female", "other"], {
-    errorMap: () => ({ message: "Please select a gender" }),
+    message: "Please select a gender",
   }),
   email: z
     .string()
