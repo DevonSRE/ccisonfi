@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import sql from "@/lib/db";
+import getDb from "@/lib/db";
 import { registerSchema } from "@/lib/validations";
 
 // Auto-create the registrations table if it doesn't exist
 async function ensureTable() {
+  const sql = getDb();
   await sql`
     CREATE TABLE IF NOT EXISTS registrations (
       id SERIAL PRIMARY KEY,
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
     await ensureTable();
 
     // Insert the registration
+    const sql = getDb();
     await sql`
       INSERT INTO registrations (first_name, last_name, gender, email, phone, organisation, designation)
       VALUES (${firstName}, ${lastName}, ${gender}, ${email}, ${phone}, ${organisation}, ${designation})
