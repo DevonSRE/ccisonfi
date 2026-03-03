@@ -74,7 +74,7 @@ export function AuthLayout({ children, title, description, hideHeader = false }:
                   </Link>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-slate-900 tracking-tight leading-tight">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-medium text-slate-900 tracking-tight leading-tight">
                   {title}
                 </h1>
                 <p className="text-slate-600 text-lg font-medium">
