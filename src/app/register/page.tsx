@@ -10,8 +10,8 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Registration"
-      description="Fill in your details to join the CCISONFI community."
+      title="Kindly fill the form below to register"
+      description="Complete your registration to attend the CCISONFI Conference 2026."
       hideHeader={registerForm.success}
     >
       {registerForm.success ? (

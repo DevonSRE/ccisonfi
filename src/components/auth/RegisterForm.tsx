@@ -26,6 +26,19 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pt-2 pb-8">
+      {/* Privacy Statement */}
+      <div className="bg-gray-50 p-4 text-xs text-slate-600 leading-relaxed">
+        <p className="font-semibold text-slate-700 mb-1">Privacy Statement:</p>
+        <p>
+          CCISONFI is committed to promoting cybersecurity awareness and resilience across Africa. 
+          In preparation for the conference, we may process your personal data in line with public 
+          interest or the legitimate interest of the data subject. The categories of data we collect 
+          depend on the nature of your engagement with us. By continuing with this registration 
+          process, you CONSENT to the processing of your personal data. Always ensure you read the 
+          privacy notices of every website you visit.
+        </p>
+      </div>
+
       {/* Error Banner */}
       {error && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 border border-red-100 text-red-700 text-sm">
@@ -206,7 +219,7 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-3.5 px-6 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 active:bg-green-800 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 cursor-pointer"
+        className="w-full py-4.5 px-6 rounded-lg bg-green-600 text-white font-semibold text-base hover:bg-green-700 active:bg-green-800 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 cursor-pointer"
       >
         {isSubmitting ? (
           <>
@@ -214,21 +227,9 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
             Registering...
           </>
         ) : (
-          "Create Account"
+          "Register"
         )}
       </button>
-
-      <p className="text-center text-xs text-slate-400 pt-2">
-        By registering, you agree to our{" "}
-        <a href="#" className="text-green-600 hover:underline">
-          Terms of Service
-        </a>{" "}
-        and{" "}
-        <a href="#" className="text-green-600 hover:underline">
-          Privacy Policy
-        </a>
-        .
-      </p>
     </form>
   );
 }
