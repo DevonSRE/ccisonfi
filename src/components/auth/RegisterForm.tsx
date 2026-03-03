@@ -1,149 +1,31 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { Icons } from "@/components/ui/Icons";
-import { registerSchema } from "@/lib/validations";
-import { z } from "zod";
+import { useRegisterForm } from "@/hooks/useRegisterForm";
+import { RegistrationSuccess } from "@/components/auth/RegistrationSuccess";
 
-interface FormData {
-  firstName: string;
-  lastName: string;
-  gender: string;
-  email: string;
-  phone: string;
-  organisation: string;
-  designation: string;
-}
+const inputClasses =
+  "w-full px-4 py-5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm transition-all duration-200 outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 hover:border-slate-300";
 
-type FieldErrors = Partial<Record<keyof FormData, string>>;
+const labelClasses = "block text-sm font-semibold text-slate-700 mb-1.5";
+
+const errorInputClasses = "border-red-400 focus:ring-red-500 focus:border-red-500";
 
 export function RegisterForm() {
-  const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
-    gender: "",
-    email: "",
-    phone: "",
-    organisation: "",
-    designation: "",
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [genderOpen, setGenderOpen] = useState(false);
-  const genderRef = useRef<HTMLDivElement>(null);
-
-  const genderOptions = [
-    { value: "male", label: "Male" },
-    { value: "female", label: "Female" },
-    { value: "other", label: "Prefer not to say" },
-  ];
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (genderRef.current && !genderRef.current.contains(e.target as Node)) {
-        setGenderOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear field error on change
-    if (fieldErrors[name as keyof FormData]) {
-      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-    setFieldErrors({});
-
-    // Client-side Zod validation
-    const result = registerSchema.safeParse(formData);
-    if (!result.success) {
-      const errors: FieldErrors = {};
-      result.error.errors.forEach((err: z.ZodIssue) => {
-        const field = err.path[0] as keyof FormData;
-        if (!errors[field]) {
-          errors[field] = err.message;
-        }
-      });
-      setFieldErrors(errors);
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Registration failed");
-      }
-
-      setSuccess(true);
-      setFormData({
-        firstName: "",
-        lastName: "",
-        gender: "",
-        email: "",
-        phone: "",
-        organisation: "",
-        designation: "",
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    formData,
+    isSubmitting,
+    success,
+    error,
+    fieldErrors,
+    handleChange,
+    handleSubmit,
+    resetSuccess,
+  } = useRegisterForm();
 
   if (success) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-          <Icons.CheckCircle2 className="w-8 h-8 text-green-600" />
-        </div>
-        <h3 className="text-2xl font-bold text-slate-900">
-          Registration Successful!
-        </h3>
-        <p className="text-slate-500 max-w-sm">
-          Thank you for registering with CCISONFI. We&apos;ll be in touch with
-          you shortly.
-        </p>
-        <button
-          onClick={() => setSuccess(false)}
-          className="mt-4 text-green-600 font-semibold hover:text-green-700 transition-colors underline underline-offset-4"
-        >
-          Register another person
-        </button>
-      </div>
-    );
+    return <RegistrationSuccess onReset={resetSuccess} />;
   }
-
-  const inputClasses =
-    "w-full px-4 py-5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm transition-all duration-200 outline-none focus:ring-1 focus:ring-green-600 focus:border-green-600 hover:border-slate-300";
-
-  const labelClasses = "block text-sm font-semibold text-slate-700 mb-1.5";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pt-2 pb-8">
@@ -171,7 +53,7 @@ export function RegisterForm() {
               value={formData.firstName}
               onChange={handleChange}
               placeholder="Enter first name"
-              className={`${inputClasses} pl-10 ${fieldErrors.firstName ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+              className={`${inputClasses} pl-10 ${fieldErrors.firstName ? errorInputClasses : ""}`}
             />
           </div>
           {fieldErrors.firstName && (
@@ -193,7 +75,7 @@ export function RegisterForm() {
               value={formData.lastName}
               onChange={handleChange}
               placeholder="Enter last name"
-              className={`${inputClasses} pl-10 ${fieldErrors.lastName ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+              className={`${inputClasses} pl-10 ${fieldErrors.lastName ? errorInputClasses : ""}`}
             />
           </div>
           {fieldErrors.lastName && (
@@ -214,7 +96,7 @@ export function RegisterForm() {
             required
             value={formData.gender}
             onChange={handleChange}
-            className={`${inputClasses} appearance-none cursor-pointer ${fieldErrors.gender ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+            className={`${inputClasses} appearance-none cursor-pointer ${fieldErrors.gender ? errorInputClasses : ""}`}
           >
             <option value="" disabled>
               Select gender
@@ -245,7 +127,7 @@ export function RegisterForm() {
             value={formData.email}
             onChange={handleChange}
             placeholder="emmanuel@gmail.com"
-            className={`${inputClasses} pl-10 ${fieldErrors.email ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+            className={`${inputClasses} pl-10 ${fieldErrors.email ? errorInputClasses : ""}`}
           />
         </div>
         {fieldErrors.email && (
@@ -268,7 +150,7 @@ export function RegisterForm() {
             value={formData.phone}
             onChange={handleChange}
             placeholder="+234 800 000 0000"
-            className={`${inputClasses} pl-10 ${fieldErrors.phone ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+            className={`${inputClasses} pl-10 ${fieldErrors.phone ? errorInputClasses : ""}`}
           />
         </div>
         {fieldErrors.phone && (
@@ -292,7 +174,7 @@ export function RegisterForm() {
               value={formData.organisation}
               onChange={handleChange}
               placeholder="Your organisation"
-              className={`${inputClasses} pl-10 ${fieldErrors.organisation ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+              className={`${inputClasses} pl-10 ${fieldErrors.organisation ? errorInputClasses : ""}`}
             />
           </div>
           {fieldErrors.organisation && (
@@ -314,7 +196,7 @@ export function RegisterForm() {
               value={formData.designation}
               onChange={handleChange}
               placeholder="Your role / title"
-              className={`${inputClasses} pl-10 ${fieldErrors.designation ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
+              className={`${inputClasses} pl-10 ${fieldErrors.designation ? errorInputClasses : ""}`}
             />
           </div>
           {fieldErrors.designation && (
