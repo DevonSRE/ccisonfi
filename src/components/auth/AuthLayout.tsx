@@ -39,11 +39,11 @@ export function AuthLayout({ children, title, description }: AuthLayoutProps) {
         </div>
 
         <div className="absolute bottom-20 left-12 right-12 z-20 text-white">
-          <h2 className="text-3xl xl:text-4xl font-bold leading-tight mb-6">
+          <h2 className="text-3xl xl:text-4xl font-semi-medium leading-tight mb-6">
             Securing Cyberspace. <br />
-            <span className="text-green-500">Empowering Organizations.</span>
+            <span className="text-green-500 font-semi-medium">Empowering Organizations.</span>
           </h2>
-          <p className="text-white/80 text-lg leading-relaxed max-w-md font-light">
+          <p className="text-white/80 text-lg leading-relaxed max-w-md font-light font-semi-medium">
             Join a trusted network of cybersecurity professionals. Access
             exclusive resources, certifications, and growth opportunities today.
           </p>

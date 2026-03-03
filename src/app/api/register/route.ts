@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
+import { registerSchema } from "@/lib/validations";
 
 // Auto-create the registrations table if it doesn't exist
 async function ensureTable() {
@@ -22,24 +23,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { firstName, lastName, gender, email, phone, organisation, designation } = body;
-
-    // Basic validation
-    if (!firstName || !lastName || !gender || !email || !phone || !organisation || !designation) {
+    // Server-side Zod validation
+    const result = registerSchema.safeParse(body);
+    if (!result.success) {
+      const firstError = result.error.errors[0]?.message || "Validation failed";
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: firstError },
         { status: 400 }
       );
     }
 
-    // Email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: "Please provide a valid email address" },
-        { status: 400 }
-      );
-    }
+    const { firstName, lastName, gender, email, phone, organisation, designation } = result.data;
 
     // Ensure the table exists
     await ensureTable();

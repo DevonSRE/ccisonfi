@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Icons } from "@/components/ui/Icons";
+import { registerSchema } from "@/lib/validations";
+import { z } from "zod";
 
 interface FormData {
   firstName: string;
@@ -12,6 +14,8 @@ interface FormData {
   organisation: string;
   designation: string;
 }
+
+type FieldErrors = Partial<Record<keyof FormData, string>>;
 
 export function RegisterForm() {
   const [formData, setFormData] = useState<FormData>({
@@ -27,6 +31,7 @@ export function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [genderOpen, setGenderOpen] = useState(false);
   const genderRef = useRef<HTMLDivElement>(null);
 
@@ -50,16 +55,37 @@ export function RegisterForm() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+    // Clear field error on change
+    if (fieldErrors[name as keyof FormData]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setFieldErrors({});
+
+    // Client-side Zod validation
+    const result = registerSchema.safeParse(formData);
+    if (!result.success) {
+      const errors: FieldErrors = {};
+      result.error.errors.forEach((err: z.ZodIssue) => {
+        const field = err.path[0] as keyof FormData;
+        if (!errors[field]) {
+          errors[field] = err.message;
+        }
+      });
+      setFieldErrors(errors);
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/register", {
@@ -145,9 +171,12 @@ export function RegisterForm() {
               value={formData.firstName}
               onChange={handleChange}
               placeholder="Enter first name"
-              className={`${inputClasses} pl-10`}
+              className={`${inputClasses} pl-10 ${fieldErrors.firstName ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
             />
           </div>
+          {fieldErrors.firstName && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.firstName}</p>
+          )}
         </div>
 
         <div>
@@ -164,9 +193,12 @@ export function RegisterForm() {
               value={formData.lastName}
               onChange={handleChange}
               placeholder="Enter last name"
-              className={`${inputClasses} pl-10`}
+              className={`${inputClasses} pl-10 ${fieldErrors.lastName ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
             />
           </div>
+          {fieldErrors.lastName && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.lastName}</p>
+          )}
         </div>
       </div>
 
@@ -182,7 +214,7 @@ export function RegisterForm() {
             required
             value={formData.gender}
             onChange={handleChange}
-            className={`${inputClasses} appearance-none cursor-pointer`}
+            className={`${inputClasses} appearance-none cursor-pointer ${fieldErrors.gender ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
           >
             <option value="" disabled>
               Select gender
@@ -193,6 +225,9 @@ export function RegisterForm() {
           </select>
           <Icons.ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         </div>
+        {fieldErrors.gender && (
+          <p className="text-red-500 text-xs mt-1">{fieldErrors.gender}</p>
+        )}
       </div>
 
       {/* Email */}
@@ -210,9 +245,12 @@ export function RegisterForm() {
             value={formData.email}
             onChange={handleChange}
             placeholder="emmanuel@gmail.com"
-            className={`${inputClasses} pl-10`}
+            className={`${inputClasses} pl-10 ${fieldErrors.email ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
           />
         </div>
+        {fieldErrors.email && (
+          <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+        )}
       </div>
 
       {/* Phone Number */}
@@ -230,9 +268,12 @@ export function RegisterForm() {
             value={formData.phone}
             onChange={handleChange}
             placeholder="+234 800 000 0000"
-            className={`${inputClasses} pl-10`}
+            className={`${inputClasses} pl-10 ${fieldErrors.phone ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
           />
         </div>
+        {fieldErrors.phone && (
+          <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>
+        )}
       </div>
 
       {/* Organisation & Designation */}
@@ -251,9 +292,12 @@ export function RegisterForm() {
               value={formData.organisation}
               onChange={handleChange}
               placeholder="Your organisation"
-              className={`${inputClasses} pl-10`}
+              className={`${inputClasses} pl-10 ${fieldErrors.organisation ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
             />
           </div>
+          {fieldErrors.organisation && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.organisation}</p>
+          )}
         </div>
 
         <div>
@@ -270,9 +314,12 @@ export function RegisterForm() {
               value={formData.designation}
               onChange={handleChange}
               placeholder="Your role / title"
-              className={`${inputClasses} pl-10`}
+              className={`${inputClasses} pl-10 ${fieldErrors.designation ? "border-red-400 focus:ring-red-500 focus:border-red-500" : ""}`}
             />
           </div>
+          {fieldErrors.designation && (
+            <p className="text-red-500 text-xs mt-1">{fieldErrors.designation}</p>
+          )}
         </div>
       </div>
 
