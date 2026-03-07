@@ -65,8 +65,17 @@ function toOrganisationSlug(value: string) {
 
 function createInviteCode(organisation: string) {
   const organisationSlug = toOrganisationSlug(organisation) || "org";
-  const randomSegment = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-  return `${organisationSlug}-${randomSegment}`;
+  const randomSource = crypto.randomUUID().replace(/-/g, "");
+  const firstSegment = randomSource.slice(0, 6);
+  const secondSegment = randomSource.slice(6, 12);
+  return `ccisonfi-${organisationSlug}-${firstSegment}-${secondSegment}`;
+}
+
+function createInviteLink(requestUrl: string, inviteCode: string) {
+  const url = new URL("/register", requestUrl);
+  url.searchParams.set("role", "employee");
+  url.searchParams.set("invite", inviteCode);
+  return url.toString();
 }
 
 export async function POST(request: NextRequest) {
@@ -167,15 +176,30 @@ export async function POST(request: NextRequest) {
 
     let shareLink: string | null = null;
     if (registrationType === "sponsor" && registrationId) {
-      const inviteCodeForSponsor = createInviteCode(resolvedOrganisation);
+      let inviteCodeForSponsor: string | null = null;
 
-      await sql`
-        INSERT INTO sponsor_invites (sponsor_registration_id, invite_code, organisation)
-        VALUES (${registrationId}, ${inviteCodeForSponsor}, ${resolvedOrganisation})
-      `;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const candidateCode = createInviteCode(resolvedOrganisation);
+        try {
+          await sql`
+            INSERT INTO sponsor_invites (sponsor_registration_id, invite_code, organisation)
+            VALUES (${registrationId}, ${candidateCode}, ${resolvedOrganisation})
+          `;
+          inviteCodeForSponsor = candidateCode;
+          break;
+        } catch (inviteError) {
+          const message = inviteError instanceof Error ? inviteError.message.toLowerCase() : "";
+          if (!message.includes("unique")) {
+            throw inviteError;
+          }
+        }
+      }
 
-      const origin = new URL(request.url).origin;
-      shareLink = `${origin}/register?role=employee&invite=${inviteCodeForSponsor}`;
+      if (!inviteCodeForSponsor) {
+        throw new Error("Could not generate sponsor invite link");
+      }
+
+      shareLink = createInviteLink(request.url, inviteCodeForSponsor);
     }
 
     return NextResponse.json(

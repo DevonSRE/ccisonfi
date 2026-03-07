@@ -20,19 +20,14 @@ const roleOptions: { label: string; value: RegistrationRole; description: string
 
 export function RegisterStartStep() {
   const router = useRouter();
-  const [role, setRole] = useState<RegistrationRole | null>(null);
+  const [role, setRole] = useState<RegistrationRole>("employee");
   const [employeeCount, setEmployeeCount] = useState("1");
   const [inputError, setInputError] = useState<string | null>(null);
   const parsedCount = Number.parseInt(employeeCount, 10);
   const isSponsorCountValid = Number.isInteger(parsedCount) && parsedCount >= 1;
-  const isContinueDisabled = !role || (role === "sponsor" && !isSponsorCountValid);
+  const isContinueDisabled = role === "sponsor" && !isSponsorCountValid;
 
   const handleContinue = () => {
-    if (!role) {
-      setInputError("Select how you want to register to continue.");
-      return;
-    }
-
     if (role === "sponsor") {
       if (!Number.isInteger(parsedCount) || parsedCount < 1) {
         setInputError("Enter a valid employee count (minimum is 1).");

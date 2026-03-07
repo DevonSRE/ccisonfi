@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Icons } from "@/components/ui/Icons";
 import type { useRegisterForm } from "@/hooks/useRegisterForm";
 
@@ -9,6 +10,12 @@ const inputClasses =
 const labelClasses = "block text-sm font-semibold text-slate-700 mb-1.5";
 
 const errorInputClasses = "border-red-400 focus:ring-red-500 focus:border-red-500";
+
+const genderOptions = [
+  { label: "Male", value: "male" },
+  { label: "Female", value: "female" },
+  { label: "Prefer not to say", value: "other" },
+] as const;
 
 interface RegisterFormProps {
   registerForm: ReturnType<typeof useRegisterForm>;
@@ -23,8 +30,16 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
     inviteLookupLoading,
     organisationLocked,
     handleChange,
+    setFieldValue,
     handleSubmit,
   } = registerForm;
+
+  const [isGenderOpen, setIsGenderOpen] = useState(false);
+
+  const selectedGenderLabel = useMemo(
+    () => genderOptions.find((option) => option.value === formData.gender)?.label ?? "Select gender",
+    [formData.gender]
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pt-2 pb-8">
@@ -98,26 +113,62 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
 
       {/* Gender */}
       <div>
-        <label htmlFor="gender" className={labelClasses}>
+        <label htmlFor="gender-trigger" className={labelClasses}>
           Gender
         </label>
         <div className="relative">
-          <select
-            id="gender"
-            name="gender"
-            required
-            value={formData.gender}
-            onChange={handleChange}
-            className={`${inputClasses} appearance-none cursor-pointer ${fieldErrors.gender ? errorInputClasses : ""}`}
+          <button
+            id="gender-trigger"
+            type="button"
+            onClick={() => setIsGenderOpen((prev) => !prev)}
+            className={`${inputClasses} pr-11 text-left cursor-pointer ${
+              formData.gender ? "text-slate-900" : "text-slate-400"
+            } ${fieldErrors.gender ? errorInputClasses : ""}`}
+            aria-haspopup="listbox"
+            aria-expanded={isGenderOpen}
+            aria-label="Select gender"
           >
-            <option value="" disabled>
-              Select gender
-            </option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Prefer not to say</option>
-          </select>
-          <Icons.ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            {selectedGenderLabel}
+          </button>
+          <Icons.ChevronDown
+            className={`absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none transition-transform duration-200 ${
+              isGenderOpen ? "rotate-180" : ""
+            }`}
+          />
+
+          {isGenderOpen && (
+            <div
+              role="listbox"
+              aria-label="Gender options"
+              className="absolute z-20 mt-2 w-full rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden"
+            >
+              {genderOptions.map((option) => {
+                const isSelected = formData.gender === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setFieldValue("gender", option.value);
+                      setIsGenderOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-green-50 text-green-700"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <input type="hidden" name="gender" value={formData.gender} required />
         </div>
         {fieldErrors.gender && (
           <p className="text-red-500 text-xs mt-1">{fieldErrors.gender}</p>

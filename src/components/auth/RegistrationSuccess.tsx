@@ -52,9 +52,9 @@ export function RegistrationSuccess({
 
       {registrationType === "sponsor" && shareLink && (
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-4 sm:p-5 text-left shadow-sm">
-          <p className="text-sm font-semibold text-slate-900 mb-1">Employee registration link generated</p>
+          <p className="text-sm font-semibold text-slate-900 mb-1">Organization invitation link generated</p>
           <p className="text-xs text-slate-500 mb-3">
-            Share this link with your employees. Their organisation field will be auto-filled.
+            Share this link only with employees from your organisation. Their organisation field will be auto-filled.
           </p>
           <div className="flex flex-col sm:flex-row gap-2.5">
             <input

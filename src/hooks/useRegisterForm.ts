@@ -114,6 +114,18 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     }
   };
 
+  const setFieldValue = (name: keyof RegisterFormData, value: string) => {
+    if (name === "organisation" && organisationLocked) {
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -185,6 +197,7 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     organisationLocked,
     registrationType,
     handleChange,
+    setFieldValue,
     handleSubmit,
     resetSuccess,
   };
