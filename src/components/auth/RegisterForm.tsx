@@ -27,6 +27,7 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
     isSubmitting,
     error,
     fieldErrors,
+    registrationType,
     inviteLookupLoading,
     organisationLocked,
     handleChange,
@@ -43,6 +44,13 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pt-2 pb-8">
+      <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3.5 py-1.5">
+        <span className="h-2 w-2 rounded-full bg-green-600" />
+        <span className="text-xs font-semibold text-green-800">
+          {registrationType === "sponsor" ? "Sponsor Registration" : "Employee Registration"}
+        </span>
+      </div>
+
       {/* Privacy Statement */}
       <div className="bg-gray-50 p-4 text-xs text-slate-600 leading-relaxed">
         <p className="font-semibold text-slate-700 mb-1">Privacy Statement:</p>
