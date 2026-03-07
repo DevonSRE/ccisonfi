@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { registerSchema } from "@/lib/validations";
 import { z } from "zod";
 
@@ -16,6 +16,13 @@ export interface RegisterFormData {
 
 export type FieldErrors = Partial<Record<keyof RegisterFormData, string>>;
 
+type RegistrationType = "sponsor" | "employee";
+
+interface UseRegisterFormOptions {
+  registrationType?: RegistrationType;
+  inviteCode?: string | null;
+}
+
 const initialFormData: RegisterFormData = {
   firstName: "",
   lastName: "",
@@ -26,17 +33,80 @@ const initialFormData: RegisterFormData = {
   designation: "",
 };
 
-export function useRegisterForm() {
+export function useRegisterForm(options?: UseRegisterFormOptions) {
+  const registrationType = options?.registrationType ?? "employee";
+  const inviteCode = options?.inviteCode ?? null;
+
   const [formData, setFormData] = useState<RegisterFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [inviteLookupLoading, setInviteLookupLoading] = useState(false);
+  const [organisationLocked, setOrganisationLocked] = useState(false);
+
+  const isInviteEmployeeFlow = useMemo(
+    () => registrationType === "employee" && Boolean(inviteCode),
+    [registrationType, inviteCode]
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const resolveInvite = async () => {
+      if (!isInviteEmployeeFlow || !inviteCode) {
+        if (active) {
+          setOrganisationLocked(false);
+        }
+        return;
+      }
+
+      setInviteLookupLoading(true);
+      try {
+        const response = await fetch(
+          `/api/register/invite?code=${encodeURIComponent(inviteCode)}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Invalid invite link");
+        }
+
+        if (!active) return;
+
+        setFormData((prev) => ({
+          ...prev,
+          organisation: data.organisation ?? prev.organisation,
+        }));
+        setOrganisationLocked(true);
+        setError(null);
+      } catch (err) {
+        if (!active) return;
+        setOrganisationLocked(false);
+        setError(err instanceof Error ? err.message : "Invalid invite link");
+      } finally {
+        if (active) {
+          setInviteLookupLoading(false);
+        }
+      }
+    };
+
+    resolveInvite();
+
+    return () => {
+      active = false;
+    };
+  }, [inviteCode, isInviteEmployeeFlow]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if (name === "organisation" && organisationLocked) {
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (fieldErrors[name as keyof RegisterFormData]) {
@@ -49,6 +119,13 @@ export function useRegisterForm() {
     setIsSubmitting(true);
     setError(null);
     setFieldErrors({});
+    setShareLink(null);
+
+    if (isInviteEmployeeFlow && !organisationLocked) {
+      setError("Your invite link could not be validated. Please use a valid link.");
+      setIsSubmitting(false);
+      return;
+    }
 
     // Client-side Zod validation
     const result = registerSchema.safeParse(formData);
@@ -69,7 +146,11 @@ export function useRegisterForm() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          registrationType,
+          inviteCode: isInviteEmployeeFlow ? inviteCode ?? undefined : undefined,
+        }),
       });
 
       const data = await res.json();
@@ -79,6 +160,7 @@ export function useRegisterForm() {
       }
 
       setSuccess(true);
+      setShareLink(data.shareLink ?? null);
       setFormData(initialFormData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -87,7 +169,10 @@ export function useRegisterForm() {
     }
   };
 
-  const resetSuccess = () => setSuccess(false);
+  const resetSuccess = () => {
+    setSuccess(false);
+    setShareLink(null);
+  };
 
   return {
     formData,
@@ -95,6 +180,10 @@ export function useRegisterForm() {
     success,
     error,
     fieldErrors,
+    shareLink,
+    inviteLookupLoading,
+    organisationLocked,
+    registrationType,
     handleChange,
     handleSubmit,
     resetSuccess,

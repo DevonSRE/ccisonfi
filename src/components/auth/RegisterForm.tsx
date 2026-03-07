@@ -20,6 +20,8 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
     isSubmitting,
     error,
     fieldErrors,
+    inviteLookupLoading,
+    organisationLocked,
     handleChange,
     handleSubmit,
   } = registerForm;
@@ -184,9 +186,18 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
               value={formData.organisation}
               onChange={handleChange}
               placeholder="Your organisation"
-              className={`${inputClasses} pl-10 ${fieldErrors.organisation ? errorInputClasses : ""}`}
+              disabled={inviteLookupLoading || organisationLocked}
+              className={`${inputClasses} pl-10 ${fieldErrors.organisation ? errorInputClasses : ""} ${
+                inviteLookupLoading || organisationLocked ? "bg-slate-50 cursor-not-allowed" : ""
+              }`}
             />
           </div>
+          {inviteLookupLoading && (
+            <p className="text-slate-500 text-xs mt-1">Validating invite link and organisation details...</p>
+          )}
+          {!inviteLookupLoading && organisationLocked && (
+            <p className="text-slate-500 text-xs mt-1">Organisation is locked from your invite link.</p>
+          )}
           {fieldErrors.organisation && (
             <p className="text-red-500 text-xs mt-1">{fieldErrors.organisation}</p>
           )}
