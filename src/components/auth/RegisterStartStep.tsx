@@ -61,7 +61,11 @@ export function RegisterStartStep() {
       <div className="space-y-2">
         <p className="text-sm font-semibold text-slate-700">Registration category</p>
         <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-          <div className="rounded-[180px] bg-slate-100 p-1 grid grid-cols-2 gap-1" role="tablist" aria-label="Registration category">
+          <div
+            className="w-full sm:w-auto sm:inline-grid rounded-[180px] bg-slate-100 p-1 grid grid-cols-2 gap-1"
+            role="tablist"
+            aria-label="Registration category"
+          >
           {roleOptions.map((option) => {
             const isSelected = role === option.value;
 
@@ -76,9 +80,9 @@ export function RegisterStartStep() {
                   }
                   setInputError(null);
                 }}
-                className={`w-full rounded-[180px] px-3 py-2.5 text-sm font-semibold text-center transition-all duration-200 cursor-pointer ${
+                className={`w-full sm:min-w-[180px] rounded-[180px] px-4 py-3.5 text-sm font-semibold text-center transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? "bg-green-600 text-white shadow-sm"
+                    ? "bg-green-600 text-white"
                     : "bg-transparent text-slate-600 hover:text-slate-800"
                 }`}
                 role="tab"
