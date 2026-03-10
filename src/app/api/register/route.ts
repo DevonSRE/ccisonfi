@@ -16,7 +16,10 @@ async function ensureTable() {
       phone VARCHAR(30) NOT NULL,
       organisation VARCHAR(255) NOT NULL,
       designation VARCHAR(255) NOT NULL,
-      registration_type VARCHAR(20) NOT NULL DEFAULT 'employee',
+      registration_type VARCHAR(20) NOT NULL DEFAULT 'attendee',
+      sponsorship_category VARCHAR(50),
+      staff_count INTEGER,
+      employee_count INTEGER,
       sponsor_invite_code VARCHAR(255),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     )
@@ -24,12 +27,38 @@ async function ensureTable() {
 
   await sql`
     ALTER TABLE registrations
-    ADD COLUMN IF NOT EXISTS registration_type VARCHAR(20) NOT NULL DEFAULT 'employee'
+    ADD COLUMN IF NOT EXISTS registration_type VARCHAR(20) NOT NULL DEFAULT 'attendee'
+  `;
+
+  await sql`
+    ALTER TABLE registrations
+    ALTER COLUMN registration_type SET DEFAULT 'attendee'
+  `;
+
+  await sql`
+    UPDATE registrations
+    SET registration_type = 'attendee'
+    WHERE registration_type = 'employee'
   `;
 
   await sql`
     ALTER TABLE registrations
     ADD COLUMN IF NOT EXISTS sponsor_invite_code VARCHAR(255)
+  `;
+
+  await sql`
+    ALTER TABLE registrations
+    ADD COLUMN IF NOT EXISTS sponsorship_category VARCHAR(50)
+  `;
+
+  await sql`
+    ALTER TABLE registrations
+    ADD COLUMN IF NOT EXISTS staff_count INTEGER
+  `;
+
+  await sql`
+    ALTER TABLE registrations
+    ADD COLUMN IF NOT EXISTS employee_count INTEGER
   `;
 
   await sql`
@@ -43,7 +72,10 @@ async function ensureTable() {
   `;
 }
 
-const registrationTypeSchema = z.enum(["sponsor", "employee"]).default("employee");
+const registrationTypeSchema = z
+  .enum(["sponsor", "attendee", "employee"])
+  .default("attendee")
+  .transform((value) => (value === "employee" ? "attendee" : value));
 
 const inviteCodeSchema = z
   .string()
@@ -51,6 +83,13 @@ const inviteCodeSchema = z
   .max(255, "Invalid invite code")
   .regex(/^[a-z0-9-]+$/, "Invalid invite code")
   .optional();
+
+const sponsorshipCategorySchema = z.enum(["Silver", "Gold", "Platinum"]);
+
+const staffCountSchema = z
+  .number()
+  .int("Staff count must be a whole number")
+  .min(1, "Staff count must be at least 1");
 
 function toOrganisationSlug(value: string) {
   return value
@@ -73,7 +112,7 @@ function createInviteCode(organisation: string) {
 
 function createInviteLink(requestUrl: string, inviteCode: string) {
   const url = new URL("/register", requestUrl);
-  url.searchParams.set("role", "employee");
+  url.searchParams.set("role", "attendee");
   url.searchParams.set("invite", inviteCode);
   return url.toString();
 }
@@ -104,13 +143,47 @@ export async function POST(request: NextRequest) {
 
     const registrationType = parsedRegistrationType.data;
 
+    const rawSponsorshipCategory =
+      typeof body.sponsorshipCategory === "string" ? body.sponsorshipCategory.trim() : undefined;
+
+    const rawStaffCount =
+      typeof body.staffCount === "number"
+        ? body.staffCount
+        : typeof body.staffCount === "string" && body.staffCount.trim().length > 0
+          ? Number.parseInt(body.staffCount, 10)
+          : undefined;
+
+    let sponsorshipCategory: "Silver" | "Gold" | "Platinum" | undefined;
+    let staffCount: number | undefined;
+
+    if (registrationType === "sponsor") {
+      const parsedCategory = sponsorshipCategorySchema.safeParse(rawSponsorshipCategory);
+      if (!parsedCategory.success) {
+        return NextResponse.json(
+          { error: "Invalid sponsorship category" },
+          { status: 400 }
+        );
+      }
+
+      const parsedStaffCount = staffCountSchema.safeParse(rawStaffCount);
+      if (!parsedStaffCount.success) {
+        return NextResponse.json(
+          { error: "Invalid staff count" },
+          { status: 400 }
+        );
+      }
+
+      sponsorshipCategory = parsedCategory.data;
+      staffCount = parsedStaffCount.data;
+    }
+
     const rawInviteCode =
       typeof body.inviteCode === "string" && body.inviteCode.trim().length > 0
         ? body.inviteCode.trim()
         : undefined;
 
     let inviteCode: string | undefined;
-    if (registrationType === "employee") {
+    if (registrationType === "attendee") {
       const parsedInviteCode = inviteCodeSchema.safeParse(rawInviteCode);
       if (!parsedInviteCode.success) {
         return NextResponse.json(
@@ -128,7 +201,7 @@ export async function POST(request: NextRequest) {
     const sql = getDb();
 
     let resolvedOrganisation = organisation;
-    if (registrationType === "employee" && inviteCode) {
+    if (registrationType === "attendee" && inviteCode) {
       const inviteRows = await sql`
         SELECT organisation
         FROM sponsor_invites
@@ -156,6 +229,9 @@ export async function POST(request: NextRequest) {
         organisation,
         designation,
         registration_type,
+        sponsorship_category,
+        staff_count,
+        employee_count,
         sponsor_invite_code
       )
       VALUES (
@@ -167,6 +243,9 @@ export async function POST(request: NextRequest) {
         ${resolvedOrganisation},
         ${designation},
         ${registrationType},
+        ${sponsorshipCategory ?? null},
+        ${staffCount ?? null},
+        ${staffCount ?? null},
         ${inviteCode ?? null}
       )
       RETURNING id

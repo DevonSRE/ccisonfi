@@ -11,11 +11,19 @@ function RegisterPageContent() {
   const searchParams = useSearchParams();
   const roleParam = searchParams.get("role");
   const inviteCode = searchParams.get("invite");
-  const registrationType = roleParam === "sponsor" ? "sponsor" : "employee";
+  const sponsorshipCategory = searchParams.get("sponsorshipCategory");
+  const staffCountParam = searchParams.get("staffCount");
+  const parsedStaffCount = staffCountParam ? Number.parseInt(staffCountParam, 10) : NaN;
+  const registrationType = roleParam === "sponsor" ? "sponsor" : "attendee";
 
   const registerForm = useRegisterForm({
     registrationType,
     inviteCode,
+    sponsorshipCategory,
+    staffCount:
+      Number.isInteger(parsedStaffCount) && parsedStaffCount > 0
+        ? parsedStaffCount
+        : undefined,
   });
 
   return (

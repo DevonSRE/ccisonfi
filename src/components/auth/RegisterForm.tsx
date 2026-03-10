@@ -47,7 +47,7 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
       <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3.5 py-1.5">
         <span className="h-2 w-2 rounded-full bg-green-600" />
         <span className="text-xs font-semibold text-green-800">
-          {registrationType === "sponsor" ? "Sponsor Registration" : "Employee Registration"}
+          {registrationType === "sponsor" ? "Sponsor Registration" : "Attendee/Participant Registration"}
         </span>
       </div>
 

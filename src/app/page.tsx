@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <AuthLayout
       title="Select your registration type"
-      description="Step 1: Choose whether you are registering as a sponsor or employee, then enter the number of employees to register."
+      description="Step 1: Choose whether you are registering as a sponsor or attendee/participant. Sponsors should select sponsorship category and number of staff."
     >
       <RegisterStartStep />
     </AuthLayout>

@@ -10,7 +10,7 @@ const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 interface RegistrationSuccessProps {
   onReset: () => void;
   shareLink?: string | null;
-  registrationType?: "sponsor" | "employee";
+  registrationType?: "sponsor" | "attendee";
 }
 
 export function RegistrationSuccess({
@@ -54,7 +54,7 @@ export function RegistrationSuccess({
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-4 sm:p-5 text-left shadow-sm">
           <p className="text-sm font-semibold text-slate-900 mb-1">Organization invitation link generated</p>
           <p className="text-xs text-slate-500 mb-3">
-            Share this link only with employees from your organisation. Their organisation field will be auto-filled.
+            Share this link only with attendees/participants from your organisation. Their organisation field will be auto-filled.
           </p>
           <div className="flex flex-col sm:flex-row gap-2.5">
             <input

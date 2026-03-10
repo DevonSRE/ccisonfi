@@ -16,10 +16,10 @@ export function AuthLayout({ children, title, description, hideHeader = false }:
       {/* Banner Image */}
       <div className="relative w-full h-[280px] md:h-[340px] overflow-hidden">
         <Image
-          src="/conference-banner.jpeg"
+          src="/banner-flyer.jpeg"
           alt="CCISONFI Conference"
           fill
-          className="object-cover object-[center_25%]"
+          className="object-cover object-center"
           priority
         />
         {/* Light green gradient overlay */}
@@ -33,14 +33,19 @@ export function AuthLayout({ children, title, description, hideHeader = false }:
             {/* Logo on card */}
             <div className="mb-6">
               <Link href="/">
-                <Image
-                  src="/CCISONFI-Logo-v2-tb-768x164.png"
-                  alt="CCISONFI Logo"
-                  width={200}
-                  height={68}
-                  className="h-12 md:h-14 w-auto object-contain"
-                  priority
-                />
+                <div className="inline-flex max-w-full items-center gap-1 sm:gap-2.5 whitespace-nowrap">
+                  <Image
+                    src="/CCISONFI-Logo-v2-tb-768x164.png"
+                    alt="CCISONFI Logo"
+                    width={200}
+                    height={68}
+                    className="h-9 sm:h-12 md:h-14 w-auto object-contain shrink-0"
+                    priority
+                  />
+                  <span className="h-9 flex items-center text-xl sm:h-12 sm:text-3xl md:h-14 md:text-[40px] leading-none font-bold tracking-wide text-[#BFA23A]">
+                    CONFERENCE
+                  </span>
+                </div>
               </Link>
             </div>
 

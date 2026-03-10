@@ -16,11 +16,13 @@ export interface RegisterFormData {
 
 export type FieldErrors = Partial<Record<keyof RegisterFormData, string>>;
 
-type RegistrationType = "sponsor" | "employee";
+type RegistrationType = "sponsor" | "attendee";
 
 interface UseRegisterFormOptions {
   registrationType?: RegistrationType;
   inviteCode?: string | null;
+  sponsorshipCategory?: string | null;
+  staffCount?: number;
 }
 
 const initialFormData: RegisterFormData = {
@@ -34,8 +36,13 @@ const initialFormData: RegisterFormData = {
 };
 
 export function useRegisterForm(options?: UseRegisterFormOptions) {
-  const registrationType = options?.registrationType ?? "employee";
+  const registrationType = options?.registrationType ?? "attendee";
   const inviteCode = options?.inviteCode ?? null;
+  const sponsorshipCategory = options?.sponsorshipCategory?.trim() || undefined;
+  const staffCount =
+    typeof options?.staffCount === "number" && Number.isInteger(options.staffCount) && options.staffCount >= 1
+      ? options.staffCount
+      : undefined;
 
   const [formData, setFormData] = useState<RegisterFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,8 +53,8 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
   const [inviteLookupLoading, setInviteLookupLoading] = useState(false);
   const [organisationLocked, setOrganisationLocked] = useState(false);
 
-  const isInviteEmployeeFlow = useMemo(
-    () => registrationType === "employee" && Boolean(inviteCode),
+  const isInviteAttendeeFlow = useMemo(
+    () => registrationType === "attendee" && Boolean(inviteCode),
     [registrationType, inviteCode]
   );
 
@@ -55,7 +62,7 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     let active = true;
 
     const resolveInvite = async () => {
-      if (!isInviteEmployeeFlow || !inviteCode) {
+      if (!isInviteAttendeeFlow || !inviteCode) {
         if (active) {
           setOrganisationLocked(false);
         }
@@ -97,7 +104,7 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     return () => {
       active = false;
     };
-  }, [inviteCode, isInviteEmployeeFlow]);
+  }, [inviteCode, isInviteAttendeeFlow]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -133,7 +140,7 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     setFieldErrors({});
     setShareLink(null);
 
-    if (isInviteEmployeeFlow && !organisationLocked) {
+    if (isInviteAttendeeFlow && !organisationLocked) {
       setError("Your invite link could not be validated. Please use a valid link.");
       setIsSubmitting(false);
       return;
@@ -161,7 +168,9 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
         body: JSON.stringify({
           ...formData,
           registrationType,
-          inviteCode: isInviteEmployeeFlow ? inviteCode ?? undefined : undefined,
+          inviteCode: isInviteAttendeeFlow ? inviteCode ?? undefined : undefined,
+          sponsorshipCategory: registrationType === "sponsor" ? sponsorshipCategory : undefined,
+          staffCount: registrationType === "sponsor" ? staffCount : undefined,
         }),
       });
 
