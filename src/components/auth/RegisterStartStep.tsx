@@ -12,6 +12,12 @@ const sponsorshipCategories = [
   "Platinum",
 ] as const;
 
+const sponsorshipCategoryLimits: Record<(typeof sponsorshipCategories)[number], number> = {
+  Silver: 1,
+  Gold: 2,
+  Platinum: 3,
+};
+
 const roleOptions: { label: string; value: RegistrationRole; description: string }[] = [
   {
     label: "Sponsor",
@@ -33,6 +39,9 @@ export function RegisterStartStep() {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const parsedCount = Number.parseInt(staffCount, 10);
+  const selectedCategoryLimit = sponsorshipCategory
+    ? sponsorshipCategoryLimits[sponsorshipCategory as keyof typeof sponsorshipCategoryLimits]
+    : undefined;
   const isSponsorCountValid = Number.isInteger(parsedCount) && parsedCount >= 1;
   const isContinueDisabled =
     role === "sponsor" && (!sponsorshipCategory || !isSponsorCountValid);
@@ -46,6 +55,13 @@ export function RegisterStartStep() {
 
       if (!Number.isInteger(parsedCount) || parsedCount < 1) {
         setInputError("Enter a valid number of staff (minimum is 1).");
+        return;
+      }
+
+      if (selectedCategoryLimit && parsedCount > selectedCategoryLimit) {
+        setInputError(
+          `${sponsorshipCategory} sponsors can only register ${selectedCategoryLimit} attendee${selectedCategoryLimit > 1 ? "s" : ""}. Please enter a lower number.`
+        );
         return;
       }
     }
@@ -166,6 +182,10 @@ export function RegisterStartStep() {
                         type="button"
                         onClick={() => {
                           setSponsorshipCategory(category);
+                          const allowedLimit = sponsorshipCategoryLimits[category];
+                          if (!Number.isInteger(parsedCount) || parsedCount < 1 || parsedCount > allowedLimit) {
+                            setStaffCount(String(allowedLimit));
+                          }
                           setIsCategoryOpen(false);
                           if (inputError) {
                             setInputError(null);
@@ -197,6 +217,7 @@ export function RegisterStartStep() {
               name="staffCount"
               type="number"
               min={1}
+              max={selectedCategoryLimit}
               step={1}
               value={staffCount}
               onChange={(e) => {
@@ -211,7 +232,9 @@ export function RegisterStartStep() {
           </div>
 
           <p className="text-xs text-slate-500 mt-2">
-            This helps us prepare the right registration experience for your team.
+            {sponsorshipCategory
+              ? `${sponsorshipCategory} sponsors can register up to ${selectedCategoryLimit} attendee${selectedCategoryLimit && selectedCategoryLimit > 1 ? "s" : ""}.`
+              : "This helps us prepare the right registration experience for your team."}
           </p>
         </div>
       )}

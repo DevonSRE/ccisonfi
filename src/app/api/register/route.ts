@@ -86,6 +86,12 @@ const inviteCodeSchema = z
 
 const sponsorshipCategorySchema = z.enum(["Silver", "Gold", "Platinum"]);
 
+const sponsorshipCategoryLimits: Record<z.infer<typeof sponsorshipCategorySchema>, number> = {
+  Silver: 1,
+  Gold: 2,
+  Platinum: 3,
+};
+
 const staffCountSchema = z
   .number()
   .int("Staff count must be a whole number")
@@ -175,6 +181,16 @@ export async function POST(request: NextRequest) {
 
       sponsorshipCategory = parsedCategory.data;
       staffCount = parsedStaffCount.data;
+
+      const categoryLimit = sponsorshipCategoryLimits[sponsorshipCategory];
+      if (staffCount > categoryLimit) {
+        return NextResponse.json(
+          {
+            error: `${sponsorshipCategory} sponsors can only register ${categoryLimit} attendee${categoryLimit > 1 ? "s" : ""}. Please enter a lower number.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const rawInviteCode =
@@ -203,8 +219,13 @@ export async function POST(request: NextRequest) {
     let resolvedOrganisation = organisation;
     if (registrationType === "attendee" && inviteCode) {
       const inviteRows = await sql`
-        SELECT organisation
+        SELECT
+          si.organisation,
+          r.sponsorship_category,
+          r.staff_count
         FROM sponsor_invites
+        si
+        LEFT JOIN registrations r ON r.id = si.sponsor_registration_id
         WHERE invite_code = ${inviteCode}
         LIMIT 1
       `;
@@ -216,7 +237,38 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      resolvedOrganisation = inviteRows[0].organisation;
+      const inviteDetails = inviteRows[0];
+      resolvedOrganisation = inviteDetails.organisation;
+
+      const sponsorCategory = inviteDetails.sponsorship_category as "Silver" | "Gold" | "Platinum" | null;
+      const staffCountLimit =
+        typeof inviteDetails.staff_count === "number" && inviteDetails.staff_count > 0
+          ? inviteDetails.staff_count
+          : null;
+      const categoryLimit = sponsorCategory ? sponsorshipCategoryLimits[sponsorCategory] : null;
+      const inviteLimit = categoryLimit ?? staffCountLimit;
+
+      if (!inviteLimit) {
+        return NextResponse.json(
+          { error: "Sponsor invite configuration is invalid" },
+          { status: 400 }
+        );
+      }
+
+      const usedSlotsRows = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM registrations
+        WHERE sponsor_invite_code = ${inviteCode}
+          AND registration_type IN ('attendee', 'employee')
+      `;
+
+      const usedSlots = usedSlotsRows[0]?.total ?? 0;
+      if (usedSlots >= inviteLimit) {
+        return NextResponse.json(
+          { error: "This sponsor invite link has reached its registration limit." },
+          { status: 400 }
+        );
+      }
     }
 
     const insertedRows = await sql`
