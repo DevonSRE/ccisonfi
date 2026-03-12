@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/db";
 import { registerSchema } from "@/lib/validations";
+import { sendRegistrationEmail } from "@/lib/mailer";
 import { z } from "zod";
 
 // Auto-create the registrations table if it doesn't exist
@@ -20,6 +21,8 @@ async function ensureTable() {
       sponsorship_category VARCHAR(50),
       staff_count INTEGER,
       employee_count INTEGER,
+      selected_attendee_count INTEGER,
+      included_attendee_count INTEGER,
       sponsor_invite_code VARCHAR(255),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     )
@@ -59,6 +62,36 @@ async function ensureTable() {
   await sql`
     ALTER TABLE registrations
     ADD COLUMN IF NOT EXISTS employee_count INTEGER
+  `;
+
+  await sql`
+    ALTER TABLE registrations
+    ADD COLUMN IF NOT EXISTS selected_attendee_count INTEGER
+  `;
+
+  await sql`
+    ALTER TABLE registrations
+    ADD COLUMN IF NOT EXISTS included_attendee_count INTEGER
+  `;
+
+  await sql`
+    UPDATE registrations
+    SET selected_attendee_count = staff_count
+    WHERE selected_attendee_count IS NULL
+      AND registration_type = 'sponsor'
+      AND staff_count IS NOT NULL
+  `;
+
+  await sql`
+    UPDATE registrations
+    SET included_attendee_count = CASE sponsorship_category
+      WHEN 'Silver' THEN 1
+      WHEN 'Gold' THEN 2
+      WHEN 'Platinum' THEN 3
+      ELSE NULL
+    END
+    WHERE included_attendee_count IS NULL
+      AND registration_type = 'sponsor'
   `;
 
   await sql`
@@ -181,17 +214,13 @@ export async function POST(request: NextRequest) {
 
       sponsorshipCategory = parsedCategory.data;
       staffCount = parsedStaffCount.data;
-
-      const categoryLimit = sponsorshipCategoryLimits[sponsorshipCategory];
-      if (staffCount > categoryLimit) {
-        return NextResponse.json(
-          {
-            error: `${sponsorshipCategory} sponsors can only register ${categoryLimit} attendee${categoryLimit > 1 ? "s" : ""}. Please enter a lower number.`,
-          },
-          { status: 400 }
-        );
-      }
     }
+
+    const includedAttendeeCount =
+      registrationType === "sponsor" && sponsorshipCategory
+        ? sponsorshipCategoryLimits[sponsorshipCategory]
+        : undefined;
+    const selectedAttendeeCount = registrationType === "sponsor" ? staffCount : undefined;
 
     const rawInviteCode =
       typeof body.inviteCode === "string" && body.inviteCode.trim().length > 0
@@ -222,7 +251,8 @@ export async function POST(request: NextRequest) {
         SELECT
           si.organisation,
           r.sponsorship_category,
-          r.staff_count
+          r.staff_count,
+          r.selected_attendee_count
         FROM sponsor_invites
         si
         LEFT JOIN registrations r ON r.id = si.sponsor_registration_id
@@ -245,8 +275,12 @@ export async function POST(request: NextRequest) {
         typeof inviteDetails.staff_count === "number" && inviteDetails.staff_count > 0
           ? inviteDetails.staff_count
           : null;
+      const selectedCountLimit =
+        typeof inviteDetails.selected_attendee_count === "number" && inviteDetails.selected_attendee_count > 0
+          ? inviteDetails.selected_attendee_count
+          : null;
       const categoryLimit = sponsorCategory ? sponsorshipCategoryLimits[sponsorCategory] : null;
-      const inviteLimit = categoryLimit ?? staffCountLimit;
+      const inviteLimit = selectedCountLimit ?? staffCountLimit ?? categoryLimit;
 
       if (!inviteLimit) {
         return NextResponse.json(
@@ -284,6 +318,8 @@ export async function POST(request: NextRequest) {
         sponsorship_category,
         staff_count,
         employee_count,
+        selected_attendee_count,
+        included_attendee_count,
         sponsor_invite_code
       )
       VALUES (
@@ -298,6 +334,8 @@ export async function POST(request: NextRequest) {
         ${sponsorshipCategory ?? null},
         ${staffCount ?? null},
         ${staffCount ?? null},
+        ${selectedAttendeeCount ?? null},
+        ${includedAttendeeCount ?? null},
         ${inviteCode ?? null}
       )
       RETURNING id
@@ -331,6 +369,20 @@ export async function POST(request: NextRequest) {
       }
 
       shareLink = createInviteLink(request.url, inviteCodeForSponsor);
+    }
+
+    try {
+      await sendRegistrationEmail({
+        to: email,
+        firstName,
+        registrationType,
+        organisation: resolvedOrganisation,
+        shareLink,
+        sponsorshipCategory,
+        staffCount,
+      });
+    } catch (mailError) {
+      console.error("Registration email error:", mailError);
     }
 
     return NextResponse.json(

@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
       SELECT
         si.organisation,
         r.sponsorship_category,
-        r.staff_count
+        r.staff_count,
+        r.selected_attendee_count
       FROM sponsor_invites si
       LEFT JOIN registrations r ON r.id = si.sponsor_registration_id
       WHERE si.invite_code = ${parsedInviteCode.data}
@@ -67,7 +68,11 @@ export async function GET(request: NextRequest) {
       typeof inviteDetails.staff_count === "number" && inviteDetails.staff_count > 0
         ? inviteDetails.staff_count
         : null;
-    const inviteLimit = categoryLimit ?? staffCountLimit;
+    const selectedCountLimit =
+      typeof inviteDetails.selected_attendee_count === "number" && inviteDetails.selected_attendee_count > 0
+        ? inviteDetails.selected_attendee_count
+        : null;
+    const inviteLimit = selectedCountLimit ?? staffCountLimit ?? categoryLimit;
 
     if (!inviteLimit) {
       return NextResponse.json(
