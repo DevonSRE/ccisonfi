@@ -1,104 +1,95 @@
 name: Frontend Pipeline
 
 on:
-    push:
-        branches: 
-            - "preproduction"   # Preproduction
-            - "staging"         # Staging
-            
-    pull_request:
-        types: 
-            - closed
-        branches: 
-            - "master"      # Production
+  push:
+    branches:
+      - "master"
+  pull_request:
+    types:
+      - closed
+    branches:
+      - "master"
+  workflow_dispatch:
 
 jobs:
-    production-deploy:
-      name: Deploy changes to production server
-      runs-on: ubuntu-latest
-      if: ${{ github.ref == 'refs/heads/master' }}
+  production-deploy:
+    name: Deploy changes to production server
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master') }}
 
-      steps:
-        # 1. Checkout repository
-        - name: Check out repository
-          uses: actions/checkout@v5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
 
-        # 2. Log in to GitHub Container Registry
-        - name: Log in to GitHub Container Registry
-          uses: docker/login-action@v4
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
 
-        # 3. Build and push Docker image
-        - name: Build and push Docker image
-          run: |
-            IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}/frontend" | tr '[:upper:]' '[:lower:]')
-            IMAGE_TAG=prod-${{ github.sha }}
-	    LATEST_TAG=latest
-            IMAGE_ENV=production
+      - name: Build and push Docker image
+        run: |
+          IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}/frontend" | tr '[:upper:]' '[:lower:]')
+          IMAGE_TAG=prod-${{ github.sha }}
+          LATEST_TAG=latest
+          IMAGE_ENV=production
 
-            echo "Building image $IMAGE_NAME:$IMAGE_TAG"
-            docker build -t $IMAGE_NAME:$IMAGE_TAG -f docker/$IMAGE_ENV/Dockerfile .
-	    docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$LATEST_TAG
-            docker push $IMAGE_NAME:$IMAGE_TAG
-            docker push $IMAGE_NAME:$LATEST_TAG
+          echo "Building image $IMAGE_NAME:$IMAGE_TAG"
+          docker build -t $IMAGE_NAME:$IMAGE_TAG -f docker/production/Dockerfile .
+          docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$LATEST_TAG
+          docker push $IMAGE_NAME:$IMAGE_TAG
+          docker push $IMAGE_NAME:$LATEST_TAG
 
-            echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
-            echo "IMAGE_TAG=$LATEST_TAG" >> $GITHUB_ENV
-            echo "IMAGE_ENV=$IMAGE_ENV" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "IMAGE_ENV=$IMAGE_ENV" >> $GITHUB_ENV
 
-        # 4. Deploy on VPS
-        - name: Deploy via SSH and Docker Compose
-          uses: appleboy/ssh-action@v1.2.0
-          with:
-            host: ${{secrets.AWS_PROD_HOST}}
-            username: ${{secrets.AWS_PROD_USER}}
-            password: ${{secrets.AWS_PROD_PASS}}
-            port: ${{ secrets.PORT }}
-            script: |
-              set -e
+      - name: Deploy via SSH and Docker Compose
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{secrets.AWS_PROD_HOST}}
+          username: ${{secrets.AWS_PROD_USER}}
+          password: ${{secrets.AWS_PROD_PASS}}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
 
-              IMAGE_NAME=${{ env.IMAGE_NAME }}
-              IMAGE_TAG=${{ env.IMAGE_TAG }}
-              IMAGE_ENV=${{ env.IMAGE_ENV }}
-              IMAGE=$IMAGE_NAME:$IMAGE_TAG
+            IMAGE_NAME=${{ env.IMAGE_NAME }}
+            IMAGE_TAG=${{ env.IMAGE_TAG }}
+            IMAGE_ENV=${{ env.IMAGE_ENV }}
+            IMAGE=$IMAGE_NAME:$IMAGE_TAG
 
-	      APP_DIR="/opt/products/ccisonfi/$IMAGE_ENV/frontend"
+            APP_DIR="/opt/products/ccisonfi/$IMAGE_ENV/frontend"
 
-              mkdir -p $APP_DIR
-              cd $APP_DIR
+            mkdir -p $APP_DIR
+            cd $APP_DIR
 
-              echo "Checking for compose file..."
-              if [ -f compose.yml ]; then
+            echo "Checking for compose file..."
+            if [ -f compose.yml ]; then
               echo "Compose file found. Skip writing..."
-              else
+            else
               echo "No compose file. Writing compose file..."
-	      cat > compose.yml <<EOF
-              name: ccisonfi-$IMAGE_ENV
-              services:
-                web:
-                  build:
-                    platforms:
-                      - linux/amd64
-                  image: $IMAGE
-		  container_name: ccisonfi-$IMAGE_ENV-web
-                  ports:
-                    - "3051:3000"
-                  restart: unless-stopped
-                  env_file:
-                    - .env
-              EOF
-	      echo "Finished writing compose file!"
-              fi
+              cat > compose.yml <<EOF
+            name: ccisonfi-$IMAGE_ENV
+            services:
+              web:
+                build:
+                  platforms:
+                    - linux/amd64
+                image: $IMAGE
+                container_name: ccisonfi-$IMAGE_ENV-web
+                ports:
+                  - "3051:3000"
+                restart: unless-stopped
+                env_file:
+                  - .env
+            EOF
+              echo "Finished writing compose file!"
+            fi
 
-              echo "Logging into GHCR..."
-              # Pull new image and start container
-              echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-              docker compose pull
-              docker compose -f compose.yml up -d
-	      
-              # Remove hanging images
-              docker image prune -f
-
+            echo "Logging into GHCR..."
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull
+            docker compose -f compose.yml up -d
+            docker image prune -f

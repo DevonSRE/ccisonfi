@@ -10,8 +10,9 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json ./
-RUN npm install
+COPY package.json pnpm-lock.yaml* .npmrc* ./
+RUN npm install -g pnpm
+RUN pnpm install
 
 # 2. Rebuild the source code only when needed
 FROM base AS builder
@@ -20,7 +21,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # This will do the trick, use the corresponding env file for each environment.
 # COPY .env .env
-RUN npm run build
+RUN npm install -g pnpm
+RUN pnpm build
 
 # 3. Production image, copy all the files and run next
 FROM base AS runner
@@ -32,7 +34,6 @@ RUN addgroup -g 1001 -S staff001
 RUN adduser -S staff001 -u 1001
 
 COPY --from=builder /app/public ./public
-COPY ./src/app/favicon.ico ./public
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
