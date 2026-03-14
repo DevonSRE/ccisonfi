@@ -91,10 +91,8 @@ jobs:
             echo "Logging into GHCR..."
             echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             CONTAINER_NAME="ccisonfi-$IMAGE_ENV-web"
-            if docker ps -a --format '{{.Names}}' | grep -Fxq "$CONTAINER_NAME"; then
-              echo "Removing existing container: $CONTAINER_NAME"
-              docker rm -f "$CONTAINER_NAME"
-            fi
+            echo "Removing existing container if present: $CONTAINER_NAME"
+            docker rm -f "$CONTAINER_NAME" || true
 
             docker compose -f compose.yml pull
             docker compose -f compose.yml up -d --remove-orphans
