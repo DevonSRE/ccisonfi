@@ -149,8 +149,66 @@ function createInviteCode(organisation: string) {
   return `ccisonfi-${organisationSlug}-${firstSegment}-${secondSegment}`;
 }
 
-function createInviteLink(requestUrl: string, inviteCode: string) {
-  const url = new URL("/register", requestUrl);
+function isInternalHost(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "0.0.0.0" ||
+    normalized === "127.0.0.1" ||
+    normalized === "localhost" ||
+    normalized.endsWith(".internal")
+  );
+}
+
+function resolveInviteBaseUrl(request: NextRequest) {
+  const originHeader = request.headers.get("origin");
+  if (originHeader) {
+    try {
+      const originUrl = new URL(originHeader);
+      if (!isInternalHost(originUrl.hostname)) {
+        return originUrl;
+      }
+    } catch {
+    }
+  }
+
+  const refererHeader = request.headers.get("referer");
+  if (refererHeader) {
+    try {
+      const refererUrl = new URL(refererHeader);
+      if (!isInternalHost(refererUrl.hostname)) {
+        return new URL(refererUrl.origin);
+      }
+    } catch {
+    }
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+
+  if (forwardedHost) {
+    const host = forwardedHost.split(",")[0]?.trim();
+    const proto = forwardedProto?.split(",")[0]?.trim() || "https";
+
+    if (host) {
+      try {
+        const forwardedUrl = new URL(`${proto}://${host}`);
+        if (!isInternalHost(forwardedUrl.hostname)) {
+          return forwardedUrl;
+        }
+      } catch {
+      }
+    }
+  }
+
+  const fallbackUrl = new URL(request.url);
+  if (isInternalHost(fallbackUrl.hostname)) {
+    fallbackUrl.hostname = "localhost";
+  }
+  return fallbackUrl;
+}
+
+function createInviteLink(request: NextRequest, inviteCode: string) {
+  const url = new URL("/register", resolveInviteBaseUrl(request));
   url.searchParams.set("role", "attendee");
   url.searchParams.set("invite", inviteCode);
   return url.toString();
@@ -368,7 +426,7 @@ export async function POST(request: NextRequest) {
         throw new Error("Could not generate sponsor invite link");
       }
 
-      shareLink = createInviteLink(request.url, inviteCodeForSponsor);
+      shareLink = createInviteLink(request, inviteCodeForSponsor);
     }
 
     try {
