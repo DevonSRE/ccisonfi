@@ -7,20 +7,17 @@ Create a `.env.local` file in the project root and add:
 ```bash
 DATABASE_URL=postgresql://username:password@host:5432/database
 
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-gmail-address@gmail.com
-SMTP_PASSWORD=your-gmail-app-password
-SMTP_FROM_EMAIL=your-gmail-address@gmail.com
-SMTP_FROM_NAME=CCISONFI
+MAILJET_API_PUBLIC_KEY=your-mailjet-public-key
+MAILJET_API_PRIVATE_KEY=your-mailjet-private-key
+MAILJET_FROM_EMAIL=verified-sender@yourdomain.com
+MAILJET_FROM_NAME=CCISONFI
 ```
 
-`SMTP_*` values are used to send confirmation emails after a successful registration.
+`MAILJET_*` values are used to send confirmation emails after a successful registration.
 
-For Gmail SMTP:
-- Use an App Password (not your normal Gmail password)
-- Keep `SMTP_PORT=587`
-- Set `SMTP_FROM_EMAIL` to the same Gmail address as `SMTP_USER` (recommended for reliable delivery)
+Mailjet notes:
+- `MAILJET_FROM_EMAIL` must be a sender/domain verified in your Mailjet account.
+- Emails are currently composed directly from the app code and sent via Mailjet API (no Mailjet template IDs required).
 
 ## Getting Started
 
