@@ -103,7 +103,7 @@ jobs:
               # Pull new image and start container
               echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
               docker compose pull
-              docker compose -f compose.yml up -d
+              docker compose -f compose.yml up -d --remove-orphans
 
               # Remove hanging images
               docker image prune -f
