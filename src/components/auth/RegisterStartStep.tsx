@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
+import { trackEvent } from "@/lib/analytics";
 
 type RegistrationRole = "sponsor" | "attendee";
 
@@ -60,6 +61,14 @@ export function RegisterStartStep() {
     }
 
     setInputError(null);
+
+    trackEvent("registration_started", {
+      stage: "continue_clicked",
+      registration_type: role,
+      sponsorship_category: role === "sponsor" ? sponsorshipCategory : null,
+      staff_count: role === "sponsor" ? parsedCount : null,
+    });
+
     const query =
       role === "sponsor"
         ? `?role=${role}&sponsorshipCategory=${encodeURIComponent(sponsorshipCategory)}&staffCount=${parsedCount}`
@@ -96,6 +105,11 @@ export function RegisterStartStep() {
                   <button
                     type="button"
                     onClick={() => {
+                      trackEvent("registration_started", {
+                        stage: "role_selected",
+                        registration_type: option.value,
+                      });
+
                       setRole(option.value);
                       if (option.value === "attendee") {
                         setStaffCount("1");
@@ -226,7 +240,7 @@ export function RegisterStartStep() {
 
           <p className={`text-xs mt-2 ${sponsorshipCategory ? "text-red-600" : "text-slate-500"}`}>
             {sponsorshipCategory
-              ? `${sponsorshipCategory} includes ${selectedCategoryLimit} attendee${selectedCategoryLimit && selectedCategoryLimit > 1 ? "s" : ""}. You can select more; additional attendees may attract extra billing.`
+              ? `${sponsorshipCategory} includes ${selectedCategoryLimit ?? 0} attendee${selectedCategoryLimit && selectedCategoryLimit > 1 ? "s" : ""}. You can select more; additional attendees may attract extra billing.`
               : "This helps us prepare the right registration experience for your team."}
           </p>
         </div>

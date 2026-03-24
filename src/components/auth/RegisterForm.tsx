@@ -30,6 +30,7 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
     registrationType,
     inviteLookupLoading,
     organisationLocked,
+    markFormStarted,
     handleChange,
     setFieldValue,
     handleSubmit,
@@ -46,7 +47,7 @@ export function RegisterForm({ registerForm }: RegisterFormProps) {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pt-2 pb-8">
+    <form onSubmit={handleSubmit} onFocusCapture={markFormStarted} className="space-y-5 pt-2 pb-8">
       <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3.5 py-1.5">
         <span className="h-2 w-2 rounded-full bg-green-600" />
         <span className="text-xs font-semibold text-green-800">

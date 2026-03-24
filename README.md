@@ -19,6 +19,20 @@ Mailjet notes:
 - `MAILJET_FROM_EMAIL` must be a sender/domain verified in your Mailjet account.
 - Emails are currently composed directly from the app code and sent via Mailjet API (no Mailjet template IDs required).
 
+## Analytics Setup (GA4 + GTM)
+
+This app sends the following client events for the registration funnel:
+
+- `registration_started`
+- `form_started`
+- `form_submitted`
+- `registration_complete`
+- `sponsor_link_opened`
+
+GTM container loading is implemented in [src/app/layout.tsx](src/app/layout.tsx) using container ID `GTM-WH28N5HW`.
+
+In GTM, create one base Google tag with GA4 Measurement ID and GA4 Event tags with matching Custom Event triggers for each event name above.
+
 ## Getting Started
 
 First, run the development server:

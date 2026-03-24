@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { registerSchema } from "@/lib/validations";
 import { z } from "zod";
+import { trackEvent } from "@/lib/analytics";
 
 export interface RegisterFormData {
   firstName: string;
@@ -52,11 +53,22 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [inviteLookupLoading, setInviteLookupLoading] = useState(false);
   const [organisationLocked, setOrganisationLocked] = useState(false);
+  const hasTrackedFormStarted = useRef(false);
+  const hasTrackedSponsorLinkOpened = useRef(false);
 
   const isInviteAttendeeFlow = useMemo(
     () => registrationType === "attendee" && Boolean(inviteCode),
     [registrationType, inviteCode]
   );
+
+  useEffect(() => {
+    if (isInviteAttendeeFlow && inviteCode && !hasTrackedSponsorLinkOpened.current) {
+      trackEvent("sponsor_link_opened", {
+        registration_type: registrationType,
+      });
+      hasTrackedSponsorLinkOpened.current = true;
+    }
+  }, [inviteCode, isInviteAttendeeFlow, registrationType]);
 
   useEffect(() => {
     let active = true;
@@ -135,6 +147,14 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    trackEvent("form_submitted", {
+      registration_type: registrationType,
+      has_invite: isInviteAttendeeFlow,
+      sponsorship_category: registrationType === "sponsor" ? sponsorshipCategory ?? null : null,
+      staff_count: registrationType === "sponsor" ? staffCount ?? null : null,
+    });
+
     setIsSubmitting(true);
     setError(null);
     setFieldErrors({});
@@ -195,6 +215,19 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     setShareLink(null);
   };
 
+  const markFormStarted = () => {
+    if (hasTrackedFormStarted.current) {
+      return;
+    }
+
+    trackEvent("form_started", {
+      registration_type: registrationType,
+      has_invite: isInviteAttendeeFlow,
+    });
+
+    hasTrackedFormStarted.current = true;
+  };
+
   return {
     formData,
     isSubmitting,
@@ -205,6 +238,7 @@ export function useRegisterForm(options?: UseRegisterFormOptions) {
     inviteLookupLoading,
     organisationLocked,
     registrationType,
+    markFormStarted,
     handleChange,
     setFieldValue,
     handleSubmit,
