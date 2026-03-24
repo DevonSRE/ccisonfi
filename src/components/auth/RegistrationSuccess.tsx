@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icons } from "@/components/ui/Icons";
+import { trackEvent } from "@/lib/analytics";
 import profileAnimation from "../../../public/Profile.json";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
@@ -19,6 +20,13 @@ export function RegistrationSuccess({
   registrationType,
 }: RegistrationSuccessProps) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  useEffect(() => {
+    trackEvent("registration_complete", {
+      registration_type: registrationType ?? null,
+      has_share_link: Boolean(shareLink),
+    });
+  }, [registrationType, shareLink]);
 
   const handleCopy = async () => {
     if (!shareLink) return;
